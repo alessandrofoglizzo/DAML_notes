@@ -1,0 +1,98 @@
+\documentclass{article}
+\usepackage[italian]{babel}
+\usepackage{physics}
+\usepackage{graphicx}
+\usepackage[export]{adjustbox}
+\usepackage{geometry}
+ \geometry{
+ a4paper,
+ total={170mm,257mm},
+ left=20mm,
+ top=20mm,
+ }
+\begin{document}
+\title{Data Analysis for Experimental Physics with Machine Learning}
+\author{A.A. 2025/26, Alessandro Foglizzo}
+\date{}
+\maketitle
+
+\section{Concetti fondamentali}
+\begin{itemize}
+    \item Dataset: insieme di coppie $(x_i,y_i)$, per i=1...N eventi
+    \item Features: insieme di variabili (indice j=1...m features) che caratterizzano un evento i: $x_i=(x_{i1}, ..., x_{ij}, ..., x_{im})$
+    \item Label: etichetta associata all'evento, è la variabile che lo classifice e viene utilizzata per il trainig, è il risultato atteso
+    \item Modello: funzione matematica che, prendendo in pasto le features, attraverso i parametri $\theta$ ottenuti durante il training, ottiene la predizione su $\hat{y}$
+    \item Funzione oggettiva: obj$(\theta)=L(\theta)+\Omega(\theta)$, misura il grado di accordo tra il fit e i dati. es MSE
+    \item Loss function $L(\theta)$: misura quanto il modello è predittivo rispetto al training set $ L(\theta) = \sum_{i}(y_i-\hat{y_i})^2 $
+    \item Regularization term $\Omega(\theta)$: controlla la complessità del modello e aiuta ad evitare l'overfitting
+    \item variance-bias tradeoff: equilibrio tra un modello predittivo e semplice
+    \item Training error: $E_{out}=Bias^2+Var+Noise$
+    \item Varianza: misura quanto cambia la predizione del modello cambiando il dataset di apprendimento, e quindi la sensibilità del modello alle fluttuazioni statistiche del dataset
+    \item Bias: o distorsione, indica la differenza tra le assunzioni sulla semplicità del modello e la complessità dei dati reali, ed è la differenza tra il valore predetto e quello reale
+    \item Ovrefitting: alta varianza e basso bias, dato da modelli troppo complessi. Errore di training molto basso, errore di test molto alto (non generalizza)
+    \item Underfitting: alto bias e bassa varianza, dato da modelli troppo semplici. Errore di training e di test molto alti.
+
+\end{itemize}
+
+\section{Neural Networks}
+Estrazione automatica delle features per trovare quelle migliori per un dato task.\newline
+Ogni neurone, sommando i pesi associati a ciascuna feature, misura una distanza da un iperpiano che viene non-linearizzata
+per esaltarne le differenze (4.5).\newline
+Diversi tipi di non linearità: Perceptron ($\theta$), sigmoide, tanh, ReLU, Leaky ReLU, ELU (4.6).\newline
+
+L'input dei neuroni del layer denso $n$ ($z=W^Tx$) è dato dall'output (attivazioni, $a=\sigma(z)$) dei neuroni del layer $n-1$, ed ha pesi indipendenti.
+Tutti i layer, meno l'input e l'output, sono nascosti (hidden): \textbf{Feed Forward Fully Connected Neural Network}.
+L'output dipende dal task:
+\begin{itemize}
+    \item[-] Classificazione binaria: output singolo, con attivazione a sigmoide
+    \item[-] Regressione lineare 1D: singolo neurone con attiivazione lineare
+    \item[-] Multiclassification: K neuroni con attivazione softmax 
+\end{itemize}
+Senza le non linearità, i vari strati sarebbero semplificabili a una mera moltiplicazione di matrici, che dà una matrice (lineare).\newline
+
+\textbf{Universal Approximation Theorem}: data una funzione $y=f(x)$ e un $\varepsilon>0$, esiste un deep network $y=f_w(x)$ di profondità o larghezza arbitraria per cui
+\[sup||f(x)-f_w(x)||<\varepsilon\]
+Quindi, una NN sufficientemente larga o profonda può approssimare una qualsiasi funzione continua su un dominio compatto. Questo però non garantisce che sia \textit{learnable}.\newline
+
+\textbf{Training NN}:
+a definita la LOSS FUNCTION in base al task e alle assunzioni: \textbf{cross-entropy} per classificazione, \textbf{MSE} per regressione.
+Dopodiché, trovare i pesi $\hat{w}$ che massimizzano la massima verosimiglianza $L(w)$. Per il \textit{gradient descent}: $\pdv{L(w)}{w}$.\newline
+
+\textbf{Backward Propagation Algorithm}: è l'algoritmo per calcolare i gradienti delle loss function. Sappiamo che che 
+\[
+y=f_L(...f_2(f_1(x))...)
+\]
+con $$y=f_L(x_L)\text{ e } x_L=f{L-1}(x_{L-1})$$
+\includegraphics[width=0.7\textwidth, center]{immagini/backpropagation.png}
+\newline
+Per calcolare $\pdv{y}{x_l}$ con $l\in {1,...,L}$ dobbiamo applicare la chain rule.
+Partendo quindi dalla derivata all'output $y=f_L$, calcoliamo a ritroso tutte le $\pdv{y}{x_l}$. (4.14)\newline
+La backpropagation è fatta in automatico dalla maggior parte dei pacchetti di deep learning.
+L'unica condizione per poter definire un tipo di layer è saperne definire il gradiente.\newline
+
+Le non linearità \textit{saturating} hanno la derivata molto piccola praticamente ovunque, quindi mandano il gradiente a zero.
+Inoltre la sigmoide è problematica perché non è centrata in zero e contiene un $e^x$, lento computazionalmente.\newline
+Al contrario, la ReLU è molto usata e fornisce rapida convergenza e computazione; non è però centrata in zero (possibile instabilità, vedere barch normalization).
+
+\includegraphics[width=0.7\textwidth, center]{immagini/not_and_saturating.png}
+
+L'obiettivo dell'\textbf{inizializzazioni dei pesi} è mantenere attivazioni stabili lungo i vari layer. Vorremmo che Var($a$)$\approx$Var($z$)
+per evitare che i segnali esplodano o svaniscano (vanishing gradients) durante la propagazione.\newline
+Notazione:
+\begin{itemize}
+    \item[-] $W$: matrice dei pesi
+    \item[-] $\mathcal{N}(\mu,\sigma^2)$: distribuzione normale con media $\mu$ e varianza $\sigma^2$
+    \item[-] $\sim$: estratto dalla distribuzione
+    \item[-] $n_{in/out}$: numero di neuroni in ingresso/uscita del layer (fan in/out)   
+\end{itemize}
+Esistono diverse inizializzazioni:
+\begin{itemize}
+    \item \textbf{Zero Initialization}: mette tutti i pesi a zero, da evitare per problemi di simmetria che impediscono l'apprendimento
+    \item \textbf{Lecun Initialization}: $W\sim\mathcal{N}(0,\frac{1}{n_{in}})$
+    \item \textbf{He (Kaiming) Initialization}: progettata per ReLU e Leaky ReLU, $W\sim\mathcal{N}(0,\frac{2}{n_{in}})$ (il fattore 2 compensa l'azzeramento, in media, della metà delle attivazioni)
+    \item \textbf{Xavier (Glorot) Initialization}: progettata per sigmoide e tanh, $W\sim\mathcal{N}(0,\frac{1}{n_{in}+n_{out}})$ (cerca un bilanciamento tra il passo avanti e quello indietro)
+\end{itemize}
+
+
+
+\end{document}
