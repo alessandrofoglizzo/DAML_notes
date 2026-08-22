@@ -200,6 +200,77 @@ Per evitare che il classificatore impari ad usare la massa per discriminare i se
 Categorizzare gli eventi in base alla purezza del segnale migliora la sensibilità dell'intera analisi.
 
 \textbf{Forza del segnale}: (6.16 per la funzione di likelihood con i parametri)
+Nel fit  della funzione prevista dal Modello Standard si aggiunge un parametro di \textbf{forza del segnale} $\mu$ su cui si fitta: se $\mu=1$ dal fit, i dati sono in perfetto accordo, se $\mu=0$ non c'è segnale.
+Viene aggiunto nella forma $f\propto\mu s(x; \theta)+\b(x;\theta)$, dove $s$ e $b$ indicano signal e background.\newline
+Per tenere conto dei possibili errori sistematici (teorici e sperimentali, che possono cambiare la forma della distribuzione: fondo, luminosità, calibrazione) si aggiunge un insieme di parametri di \textit{nuisance} $\theta$.\newline
+Data la funzione di massima verosimiglianza globale $\mathcal{L}(\mu,\theta)$, $\hat{\mu}$ e $\hat{\theta}$ sono i parametri che massimizzano $\mathcal{L}$: sono Maximum Likelihood Estimator (MLE).\newline
+Con i parametri di nuisance si può inoltre fare la \textbf{profilazione} (profiling): il set di parametri $\hat{\hat{\theta}}(\mu)$, detti MLE condizionali, sono i valori che massimizzano $\mathcal{L}$ per un certo valore fissato di $\mu$.\newline
+
+Si deifnisce il \textbf{Profile Likelihood Ratio}
+\[\lambda(\mu)=\frac{\mathcal{L}(\mu,\hat{\hat{\theta}})}{\mathcal{L}(\hat{\mu},\hat{\theta})} \]
+sempre compreso tra 0 e 1, in quanto il denominatore è un massimo assoluto e il numeratore un massimo vincolato. Se il valore di $\mu$ scelto nella profilazione è in forte accordo con i dati ottenuti (e quindi con $\hat{\mu}$), $\lambda\rightarrow1$, se invece
+è in disaccordo $\lambda\rightarrow0$.\newline
+
+\textbf{Statistica di test}: per effettuare i test statistici che servono a rigettare o accettare un'ipotesi, l'intero dataset viene ridotto alla variabile di test
+\[q(\mu)=-2\ln(\lambda(\mu)) \]
+che trasforma dei piccoli valori di probabilità tra 0 e 1 in valori positivi più facili da gestire: grandi valori di $q$ indicano forte disaccordo tra ipotesi e dati.\newline
+
+Per misure di forza del segnale, la massa $m_H$ viene trattata come gli altri parametri di nuisance e profilata; quando si fanno misure di massa, è la forza del segnale ad essere profilata.\newline
+
+\textbf{Robust Classifier}: si può sviluppare un modello di ML perché sia indipendente (insensibile) rispetto a una specifica variabile. Questa può essere una variabile fisica (come massa invariante o momento trasverso) o un parametro di nuisance.\newline
+Nel caso di un parametro fisico come la massa invariante, è importante evitare che la selezione di eventi scolpisca artificialmente la forma del fondo, e mantenere l'indipendenza permette di stimare il fondo a partire dai dati reali.\newline
+Nei modelli di simulazione MC alcuni parametri (come pileup, material budget, calibrazione) potrebbero essere fissati: se nei dati reali alcuni di questi
+valori fossero diversi, il modello ML perderebbe potere discriminativo.\newline
+Questa situazione, in cui simulazione e test hanno PDF diverse, è detta \textit{Domain Adaptation} e ci sono tre tecniche per approcciarla:
+\begin{itemize}
+    \item Calibrazione dell'output: si addestra il classificatore sul dominio di training, e poi si seleziona un campione del dataset di test per confrontare le prestazioni e ricalibrare.
+    \item Approccio parametrizzato: si parametrizza completamente l'andamento rispetto a una variabile di nuisance $\alpha$, che poi viene usata come feature di input del modello. Bisogna conoscere a priori una PDF per applicarci la nuisance.
+    \item Approccio Robust Classifier: rendere il classificatore indipendente dalla nuisance; può essere meno perfomativo dell'approccio parametrizzato ma è più utile in caso non fosse pratico modellizzare le pdf.
+\end{itemize}
+
+Tre possibili approcci per ridurre la dipendenza dalla nuisance: planing, decorrelating loss penalties, adversarial training.\newline
+\textbf{Planing}: preprocessamento dei dati per ridurre o rimuovere la dipendenza dello score del classificatore da $\alpha$.
+Si implementa evitando che il classificatore consideri la feature o il parametro di nuisance come oggetto discriminante tra diverse ipotesi di classe. 
+Nel \textit{planing}, se vogliamo indipendentizzare dalla massa invariante $M$, si pesa ogni evento di training con $w(M)$ in modo che in funzione di $M$ le PDF del segnale e del fondo siano uguali. Date $p_S$ e $p_B$ le pdf per segnale e fondo,
+avremo i pesi:
+\[
+\text{segnale: } w(M)=\frac{1}{p_S(M)}\ , \qquad \text{fondo: } w(M)=\frac{1}{p_B(M)}
+\]
+I pesi entrano nel calcolo del loss nel training ma non nella validation o nel testing.\newline
+Limitazione: se ci sono altre features che potrebbero correlare il classificatore, lo informeranno sul valore della variabile "planata".\newline
+
+\textbf{Decorrelating Loss Penalties}: si aggiunge un termine di penalizzazione (dCorr$^2$) alla funzione di perdita, che misura la dipendenza non lineare tra l'output della rete e la variabile che si vuole decorrelare, penalizzando il modello se l'indipendenza non è rispettata.
+È pesata da un iperparametro $\lambda$. La Distance Correlation (DisCo, dCorr$^2$) si definisce a partire dalla \textit{covarianza di distanza} (dCov$^2$), che misura qualsiasi correlazione anche non lineare.
+\[
+\text{dCov}^2(X,Y) = \langle |X - X'||Y - Y'| \rangle + \langle |X - X'| \rangle \langle |Y - Y'| \rangle - 2 \langle |X - X'||Y - Y''| \rangle
+\]
+\[
+\text{dCorr}^2(X, Y) = \frac{\text{dCov}^2(X,Y)}{\sqrt{\text{dCov}^2(X,X) \cdot \text{dCov}^2(Y,Y)}}
+\]
+dove gli apici indicano copie i.i.d. (ovvero coppie diverse di punti estratte dallo stesso dataset).\newline
+La loss function si può quindi scrivere come
+\[
+\mathcal{L}=\mathcal{L}_\text{classifier}(\vec{y}, \vec{y_{true}}) + \lambda\ \text{dCorr}^2_{y_{true}=0}(\vec{m}, \vec{y})
+\]
+dove $\vec{y}$ è il vettore degli output (predizioni) della rete, e $\vec{m}$ il vettore della variabile da cui ci si vuole decorrelare (in questo caso la massa).
+Il calcolo di dCorr$^2$ per $y_{true}=0$ indica che va calcolata solamente per gli eventi di fondo.\newline
+
+\textbf{Adversarial Training}: è un'estensione della penalized loss, in quanto la loss function è la combinazione di due parti. Alla loss standard, si aggiunge una loss avversaria (modulata da un iperparametro) che funziona da penalty.\newline
+La loss è formata da due NN che competono tra loro:
+\[
+\mathcal{L}_\text{total}(\theta) = \mathcal{L}_\text{cls}(\theta)-\lambda\cdot\mathcal{L}_\text{adv}(\phi;\theta)
+\]
+in cui si minimizza $\mathcal{L_\text{total}}$ rispetto a $\theta$ e $\mathcal{L_\text{adv}}$ rispetto a $\phi$. In altre parole,
+\[
+\min_\theta \max_\phi [\mathcal{L}_\text{cls}(\theta)-\lambda\cdot\mathcal{L}_\text{adv}(\phi;\theta)]
+\]
+\includegraphics[width=0.7\textwidth, center]{immagini/adversarialNN.png}
+
+Il compito della rete avversaria è di imparare $p(z|F_c(X))$, ma il classificatore verrebbe penalizzato se il suo output permette all'avversaria di ottenere questo risultato.
+È un training delicato perché la loss totale non è più limitata inferiormente.\newline
+
+\textbf{NN Parametrica}: si usa un parametro come feature di input e si addestra usando dataset generati con specifici valori del parametro. Se questo non è definito per una classe (eg la massa nel sample del fondo) si usa un valore casuale.\newline
+Vantaggi: permette di interoìpolare tra i valori dei parametri e ha una performance migliore rispetto a una sola rete addestrata su un sample con parametri mischiati.
 
 
 
