@@ -43,6 +43,56 @@ nell'anno 2025/2026.
 
 \end{itemize}
 
+\section{Decision Trees}
+Binary query function $q(x)$ in ogni Branch node, che classifica 0 o 1.
+Non avendo un numero definito di parametri non si può fare il GD: \textbf{Greedy Agorithm}.\newline
+Si sceglie lo split massimizzando il delta dell'impurity function $L(R)$:
+\[
+\max_{j,T}\{L(R_p)-(p_PL(R_1) + p_FL(R_2))\}
+\] 
+Come impuritu si possono usare: Misclassification error, Entropia o Gini index. Per la regressione,
+si usa il MSE.\newline
+Il greedy algorithm non ha problemi di convergenza come il GD. Vediamo le stopping conditions:
+\begin{itemize}
+    \item[-] Minimum leaf size
+    \item[-] Effective number of events (per eventi pesati)
+    \item[-] Perfect separation: non si splitta più se in un nodo c'è una sola classe
+    \item[-] Insufficient improvement:  stop quando gli split non migliorano la performance (not so good)
+\end{itemize}
+
+\subsection*{Regolarizzazione}
+\textbf{Pruning}: espandiamo il Tree e a posteriori tagliamo dei sub-tree in base a
+a una loss che penalizza il numero di foglie.\newline
+
+\textbf{Feature Importance}: valutazione del peso delle features nella decisione, per togliere
+    quelle che non contribuiscono e semplificare il modello. $Imp(f)=Q_0 - Q_f$, con $Q$ quality measure
+    calcolata prima con tutte le features e poi rimuovendo una feature $f$.\newline
+
+\textbf{Ensembling}: combinazione di più modelli per ottenere un modello migliore\newline
+
+\textbf{Bagging (Bootstrap Aggregating)}: produce $m$ dataset a partire dal dataset iniziale,
+creati mescolando sub-dataset con possibile ripetizione. RIDUCE LA VARIANZA.
+
+\textbf{Random Forest}: Bagging + decision trees + more randomness.\newline
+Si divide il dataset in tanti subset (bagging) e si costruisce un tree per ogni subset. In ogni nodo del tree vengono
+usate solo una parte delle features per avere alberi indipendenti tra loro. La decisione finale è il voto
+pesato di ogni tree.\newline
+
+\textbf{Boosting}: opposto del bagging, riduce il bias di modelli a bassa varianza (weak learners).\newline
+Train di modelli in sequenza, sistemando gli errori dei modelli precedenti, poi si prende la media pesata dei 
+modelli come best decision.\newline
+Ad es, \textbf{Adaboost} assegna i pesi con una loss esponenziale.
+
+\textbf{Gradient Boosting}: simile al Gradient Descent, però nello spazio dei modelli. La loss ha un termine di loss comune e un termine di regolarizzazione.\newline
+Segue uno schema additivo, creando un albero a cui fa fare una predizione, e poi crea un altro albero per correggere gli errori del precedente in maniera iterativa.
+La predizione finale è data dalla somma delle predizioni degli alberi, mentre la funzione oggettiva al passaggio $t$ è data da 
+\[
+\text{obj}^{(t)} = \sum_{i=1}^n l(y_i, \hat{y}_i^{(t-1)} + f_t(x_i)) + \Omega(f_t) + const
+\]
+dove l'indice $i$ indica gli eventi.
+
+
+
 \section{Neural Networks}
 Estrazione automatica delle features per trovare quelle migliori per un dato task.\newline
 Ogni neurone, sommando i pesi associati a ciascuna feature, misura una distanza da un iperpiano che viene non-linearizzata
@@ -141,7 +191,7 @@ va diminuito il learning rate, ma non troppo presto e in più fasi in modo da ev
 Consiglio: monitorare sempre la training history, controllando le figure di merito (loss, accuracy, MSE) per i dataset training e validazione. Inoltre, evitare numeri molto piccoli e molto grandi e controllare se ci sono NaN quando il modello non migliora.
 
 \section{Calibrazione della risposta di un rivelatore}
-Con \textbf{risposta di un rivelatore} ci si riferusce alla misura ottenuta da un rivelatore che ha ricevuto uno specifico input. I rivelatori non producono misure esatte
+Con \textbf{risposta di un rivelatore} ci si riferisce alla misura ottenuta da un rivelatore che ha ricevuto uno specifico input. I rivelatori non producono misure esatte
 e per uno stesso input fisico $y$ l'output $x$ potrebbe variare per effetti stocastici (noise e risoluzione) o sistematici (soglie di misurazione,...).
 Quindi, la risposta $x$ del rivelatore è governata da una legge di \textit{probabilità condizionale} $p(x|y)$.\newline
 
@@ -159,7 +209,7 @@ per i b-jet
 
 \section{Classificatori per analisi di eventi HEP}
 Bosone di Higgs: $m_H=125$ GeV, $\tau_H\sim10^{-25}$ s, scalare.\newline
-Produzione: acccoppiamento con fermioni (in particolare t che ha la massa, e quindi l'accoppiamento con l'Higgs, maggiore) ggH (gluon fusion con loop t 90$\%$) e ttH (2g->t$\bar{\text{t}}$t$\bar{\text{t}}$); accoppiamento con bosoni vettori VBF (vector boson fusion, 2q->qqWW/qqZZ), VH (q$\bar{\text{q}}$->W/Z->W/Z+H).\newline
+Produzione: acccoppiamento con fermioni (in particolare t che ha la massa, e quindi l'accoppiamento con l'Higgs, maggiore) ggH (gluon fusion con loop t 90$\%$) e ttH (2g$\rightarrow$t$\bar{\text{t}}$t$\bar{\text{t}}$); accoppiamento con bosoni vettori VBF (vector boson fusion, 2q$\rightarrow$qqWW/qqZZ), VH (q$\bar{\text{q}}\rightarrow$W/Z$\rightarrow$W/Z+H).\newline
 Decadimento nelle \textbf{Higgs Big Five}: \newline
 \includegraphics[width=\textwidth, center]{immagini/bigfive.png}
 
@@ -180,7 +230,7 @@ Ricerca di un picco piccolo e stretto su un grande fondo che decade esponenzialm
 È necessaria una buona risoluzione energetica e spaziale del calorimetro EM per determinare l'angolo tra i due fotoni.\newline
 \textit{Bump-Hunt Analysis}: il fondo che decade permette una stima robusta del fondo direttamente nella zona del segnale. In questo caso, su uno spettro di massa invariante $m_{\gamma\gamma}$.
 \[
-m_{\gamma\gamma}\sqrt{2E_1E_2(1-\cos\theta_{12})}
+m_{\gamma\gamma}=\sqrt{2E_1E_2(1-\cos\theta_{12})}
 \]
 
 Simple-cut analysis: selezione degli eventi che contengono 2 fotoni isolati con $p_T>30$ GeV e $\abs{\eta}<2.5$: definisce una regione di segnale usando tagi rettangolari sulle features osservabili ($p_T, \eta$, isolation).\newline
@@ -266,7 +316,8 @@ in cui si minimizza $\mathcal{L_\text{total}}$ rispetto a $\theta$ e $\mathcal{L
 \]
 \includegraphics[width=0.7\textwidth, center]{immagini/adversarialNN.png}
 
-Il compito della rete avversaria è di imparare $p(z|F_c(X))$, ma il classificatore verrebbe penalizzato se il suo output permette all'avversaria di ottenere questo risultato.
+Il compito della rete avversaria è di imparare $p(z|F_c(X))$, quindi indovinare il valore della variabile di disturbo $z$ a partire dell'output $F_c(X)$ del classificatore. 
+Ma il classificatore verrebbe penalizzato se il suo output permettesse all'avversaria di ottenere questo risultato.
 È un training delicato perché la loss totale non è più limitata inferiormente.\newline
 
 \textbf{NN Parametrica}: si usa un parametro come feature di input e si addestra usando dataset generati con specifici valori del parametro. Se questo non è definito per una classe (eg la massa nel sample del fondo) si usa un valore casuale.\newline
