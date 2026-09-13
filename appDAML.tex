@@ -43,6 +43,69 @@ nell'anno 2025/2026.
 
 \end{itemize}
 
+\section{Regressione Lineare}
+Problema della MSE con dataset asimmetrici: assume che siano gaussiani. Soluzioni: 0-1 Loss, problematica nel calcolo del gradiente; altra solizuzione
+la \textbf{Sigmoide}
+\[
+p(C_1|x)=\frac{1}{1+\exp^{-a}} = \sigma(a), \qquad a=\ln\frac{p(C_1|x)}{p(C_2|x)}\text{ (logit)}
+\]
+
+Regressione logistica: data la funzione $a(x)=W^Tx+w_0$ lineare nei pesi, abbiamo $\sigma(a(x))$.\newline
+Per trovare i pesi ottimali, si può scrivere la funzione di massima verosimiglianza bernoulliana
+\[
+L(w) = \prod_{i=1}^n p(C_1|x_i)^{y_i}p(C_2|x_i)^{1-y_i}
+\]
+da cui, estraendo il negativo del logaritmo, si ottiene la \textbf{Binary Cross-Entropy Loss}:
+\[
+L(w) = - \sum_{i=1}^n [y_i\ln p(C_1|x_i) + (1-y_i)\ln p(C_2|x_i)]
+\]
+
+La regressione lineare consiste in un layer in cui si accoppiano features e pesi (lineare) il cui risultato va in pasto a una sigmoide. Prima di ciò, si può
+fare \textit{feature engineering} per adattare le features a una selezione lineare.
+
+\subsubsection*{Classification metrics}
+\[
+\text{Accuracy} = \frac{TP + TN}{TP+FP+TN+FN} \qquad \text{Recall}=\frac{TP}{TP + FN}
+\]
+\[
+\text{Precision} = \frac{TP}{TP+FP} \qquad \text{Specificity}=\frac{FN}{TN+FP}
+\]
+\[
+F_1 = \frac{2\cdot\text{Precision}\cdot\text{Recall}}{\text{Precision}+\text{Recall}}
+\]
+
+\subsection*{Ottimizzatori}
+\subsubsection*{Gradient Descent (GD)}
+Metodo iterativo del primo ordine per trovare il minimo della Loss. Effettua un passo nel verso opposto del
+gradiente calcolato rispetto ai pesi, e si muove di una distanza $\eta$ detta \textit{Learning Rate}.
+\[
+w^{(t-1)} = w^{(t)} - \eta \grad{}_w L(w^{(t)})
+\]
+Il learning rate ottimale è l'inverso dell'Hessiana.
+
+\subsubsection*{Stochastic Gradient Descent (SGD)}
+Aggiunge una componente di casualità alla direzione del GD. Se con Mini-Batch, divide causalmente il
+dataset in mini batches e calcola il GD su ognuno dei singoli batches singolarmente.
+
+\subsubsection*{SGD with Momentum}
+Si può aggiungere una componente di "inerzia" al SGD, associando un momento.
+Questo permette di uscire dai minimi locali avendo una memoria della direzione di spostamento nello spazio dei parametri.
+\[
+v_{t+1} = \rho v_t - \eta\grad{L(w_t)}\ , \qquad w_{t+1} = w_t + v_{t+1}
+\]
+Un metodo più vantaggioso è usare il momento di Nesterov:
+\[
+v_{t+1} = \rho v_t - \eta\grad{L(w_t + \rho v_t)}
+\]
+
+\subsubsection*{Adaptive Learning Rate}
+Il learning rate si adatta in modo da essere sempre l'inverso dell'hessiana di L, accorciandosi quando il gradiente 
+è grande e velocizzando la convergenza quando nei plateau.
+
+\subsubsection*{ADAM (Adaptive Moment Estimation)}
+Unisce i vantaggi del momento e dell'adaptive learning rate.
+
+
 \section{Decision Trees}
 Binary query function $q(x)$ in ogni Branch node, che classifica 0 o 1.
 Non avendo un numero definito di parametri non si può fare il GD: \textbf{Greedy Agorithm}.\newline
@@ -50,7 +113,7 @@ Si sceglie lo split massimizzando il delta dell'impurity function $L(R)$:
 \[
 \max_{j,T}\{L(R_p)-(p_PL(R_1) + p_FL(R_2))\}
 \] 
-Come impuritu si possono usare: Misclassification error, Entropia o Gini index. Per la regressione,
+Come impurità si possono usare: Misclassification error, Entropia o Gini index. Per la regressione,
 si usa il MSE.\newline
 Il greedy algorithm non ha problemi di convergenza come il GD. Vediamo le stopping conditions:
 \begin{itemize}
